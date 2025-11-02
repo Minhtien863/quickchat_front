@@ -5,6 +5,8 @@ class ChatServiceMock implements ChatService {
   final _me = 'u1';
   final List<ConversationDTO> _conversations = [];
   final Map<String, List<MessageDTO>> _messagesByConv = {};
+  final _scheduled = <ScheduledMessageDTO>[];
+  final _msgs = <String, List<MessageDTO>>{};
 
   ChatServiceMock() {
     final c1 = ConversationDTO(
@@ -120,5 +122,71 @@ class ChatServiceMock implements ChatService {
       }
     }
     return null;
+  }
+
+  @override
+  Future<void> scheduleText(String conversationId, String text, DateTime when, {Map<String, dynamic>? replyTo}) async {
+    _scheduled.add(ScheduledMessageDTO(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      conversationId: conversationId,
+      text: text,
+      scheduleAt: when,
+      createdAt: DateTime.now(),
+    ));
+  }
+
+  @override
+  Future<List<ScheduledMessageDTO>> listScheduled({String? conversationId}) async {
+    final list = List<ScheduledMessageDTO>.from(_scheduled);
+    if (conversationId != null) {
+      return list.where((s) => s.conversationId == conversationId).toList();
+    }
+    // sort by scheduleAt
+    list.sort((a, b) => a.scheduleAt.compareTo(b.scheduleAt));
+    return list;
+  }
+
+  @override
+  Future<void> cancelScheduled(String scheduledId) async {
+    _scheduled.removeWhere((s) => s.id == scheduledId);
+  }
+
+  @override
+  Future<void> reschedule(String scheduledId, DateTime newWhen) async {
+    final i = _scheduled.indexWhere((s) => s.id == scheduledId);
+    if (i >= 0) {
+      final s = _scheduled[i];
+      _scheduled[i] = ScheduledMessageDTO(
+        id: s.id,
+        conversationId: s.conversationId,
+        text: s.text,
+        scheduleAt: newWhen,
+        createdAt: s.createdAt,
+        status: s.status,
+      );
+    }
+  }
+
+  @override
+  Future<void> sendNow(String scheduledId) async {
+    final i = _scheduled.indexWhere((s) => s.id == scheduledId);
+    if (i >= 0) {
+      final s = _scheduled.removeAt(i);
+      // giả lập "gửi ngay" bằng cách thêm message vào listMessages
+      final list = _msgs[s.conversationId] ??= [];
+      list.add(MessageDTO(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        conversationId: s.conversationId,
+        senderId: 'u1',
+        type: 'text',
+        text: s.text,
+        asset: null,
+        replyTo: null,
+        reactions: const [],
+        createdAt: DateTime.now(),
+        editedAt: null,
+        deleted: false,
+      ));
+    }
   }
 }

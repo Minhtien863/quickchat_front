@@ -1,3 +1,4 @@
+import '../models/user_lite.dart';
 enum FriendsFilter { all, newOnly, online }
 enum GroupSort { activity, name, managed } // mới
 
@@ -51,6 +52,8 @@ class UserProfileDTO {
   UserProfileDTO({required this.id, required this.displayName, required this.handle, this.bio, this.birthday, this.avatarUrl});
 }
 
+
+
 abstract class ContactsService {
   Future<List<FriendDTO>> listFriends({String? q, FriendsFilter filter = FriendsFilter.all, int limit = 200});
   Future<int> friendsCount();
@@ -68,4 +71,7 @@ abstract class ContactsService {
 
   Future<UserProfileDTO> getProfile(String userId);
   Future<UserProfileDTO> myProfile();
+
+  Future<List<UserLite>> searchUsers({required String q});
+  Future<void> sendFriendInvite({required String userId});
 }

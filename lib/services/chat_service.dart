@@ -62,10 +62,45 @@ class MessageDTO {
   });
 }
 
+class ScheduledMessageDTO {
+  final String id;
+  final String conversationId;
+  final String text;
+  final DateTime scheduleAt;
+  final DateTime createdAt;
+  final String status; // 'pending' | 'sent' | 'failed'
+
+  ScheduledMessageDTO({
+    required this.id,
+    required this.conversationId,
+    required this.text,
+    required this.scheduleAt,
+    required this.createdAt,
+    this.status = 'pending',
+  });
+}
+
 abstract class ChatService {
   Future<List<ConversationDTO>> listConversations({String? q, int limit = 30, String? cursor});
   Future<List<MessageDTO>> listMessages(String conversationId, {int limit = 30, String? before});
   Future<MessageDTO> sendText(String conversationId, String text, {Map<String, dynamic>? replyTo});
   Future<void> addReaction(String messageId, String emoji);
   Future<void> removeReaction(String messageId, String emoji);
+
+  Future<void> scheduleText(String conversationId, String text, DateTime when, {Map<String, dynamic>? replyTo});
+  Future<List<ScheduledMessageDTO>> listScheduled({String? conversationId});
+  Future<void> cancelScheduled(String scheduledId);
+  Future<void> reschedule(String scheduledId, DateTime newWhen);
+  Future<void> sendNow(String scheduledId); // mock "gửi ngay"
+}
+
+extension ChatServiceEmojiShim on ChatService {
+  Future<MessageDTO> sendEmoji(
+      String conversationId,
+      String emoji, {
+        Map<String, dynamic>? replyTo,
+      }) {
+    // Với mock hiện tại, coi emoji như 1 tin nhắn text
+    return sendText(conversationId, emoji, replyTo: replyTo);
+  }
 }

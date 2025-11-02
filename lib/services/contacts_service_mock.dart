@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'contacts_service.dart';
+import '../models/user_lite.dart';
 
 class ContactsServiceMock implements ContactsService {
   final String _me = 'u1';
@@ -145,6 +146,46 @@ class ContactsServiceMock implements ContactsService {
     await Future.delayed(const Duration(milliseconds: 100));
     return _profiles[userId] ?? UserProfileDTO(id: userId, displayName: 'User $userId', handle: 'user$userId');
   }
+
+  @override
+  Future<List<UserLite>> searchUsers({required String q}) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    final s = q.trim().toLowerCase().replaceAll('@', '');
+    // lọc theo displayName hoặc handle (mock không có email/phone thật)
+    final hits = _profiles.values.where((p) {
+      final name = p.displayName.toLowerCase();
+      final handle = p.handle.toLowerCase();
+      return name.contains(s) || handle.contains(s);
+    }).toList()
+      ..sort((a, b) => a.displayName.compareTo(b.displayName));
+
+    return hits.map((p) => UserLite(
+      id: p.id,
+      displayName: p.displayName,
+      handle: p.handle,           // dạng không @
+      avatarUrl: p.avatarUrl,
+    )).toList();
+  }
+
+  @override
+  Future<void> sendFriendInvite({required String userId}) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    // nếu đã là bạn thì thôi
+    final alreadyFriend = _friends.any((f) => f.id == userId);
+    if (alreadyFriend) return;
+    // nếu đã gửi rồi thì thôi
+    final alreadySent = _sent.any((s) => s.id == 's_$userId');
+    if (alreadySent) return;
+
+    final p = _profiles[userId];
+    if (p == null) return;
+    _sent.add(FriendInviteDTO(
+      id: 's_$userId',
+      displayName: p.displayName,
+      createdAt: DateTime.now(),
+    ));
+  }
+
 
   @override
   Future<UserProfileDTO> myProfile() async => getProfile(_me);

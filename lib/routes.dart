@@ -15,6 +15,16 @@ import 'views/call/video_call_screen.dart';
 import 'views/call/voice_call_screen.dart';
 import 'views/chat/scheduled_messages_page.dart';
 import 'views/chat/chat_settings_page.dart';
+import 'views/splash/splash_page.dart';
+import 'views/settings/edit_email_page.dart';
+import 'views/settings/edit_phone_page.dart';
+import 'views/settings/account_security_page.dart';
+import 'views/settings/appearance_language_page.dart';
+import 'views/settings/call_settings_page.dart';
+import 'views/settings/chat_settings_global_page.dart';
+import 'views/settings/notifications_settings_page.dart';
+import 'views/settings/privacy_settings_page.dart';
+import 'views/settings/settings_page.dart';
 
 class AppRoutes {
   static const splash             = '/';
@@ -31,14 +41,24 @@ class AppRoutes {
   static const voiceCall          = '/voice-call';
   static const videoCall          = '/video-call';
   static const scheduledMessages  = '/scheduled-messages';
+
   static const chatSettings       = '/chat-settings';
+  static const accountSecurity    = '/account-security';
+  static const editPhone          = '/edit-phone';
+  static const editEmail          = '/edit-email';
+  static const settings           = '/settings';
+  static const privacySettings    = '/privacy-settings';
+  static const notificationsSettings = '/notifications-settings';
+  static const chatSettingsGlobal = '/chat-settings-global';
+  static const callSettings       = '/call-settings';
+  static const appearanceLanguage = '/appearance-language';
 }
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings s) {
     switch (s.name) {
       case AppRoutes.splash:
-        return _material(s, const _SplashGate());
+        return _material(s, const SplashPage());
 
       case AppRoutes.signIn:
         return _material(s, const SignInPage());
@@ -117,6 +137,41 @@ class AppRouter {
         );
       }
 
+      case AppRoutes.accountSecurity:
+        return _material(s, const AccountSecurityPage());
+
+      case AppRoutes.editPhone:
+        final a = (s.arguments as Map?) ?? const {};
+        return _material(
+          s,
+          EditPhonePage(currentPhone: a['currentPhone'] as String?),
+        );
+
+      case AppRoutes.editEmail:
+        final a = (s.arguments as Map?) ?? const {};
+        return _material(
+          s,
+          EditEmailPage(currentEmail: a['currentEmail'] as String?),
+        );
+
+      case AppRoutes.settings:
+        return _material(s, const SettingsPage());
+
+      case AppRoutes.privacySettings:
+        return _material(s, const PrivacySettingsPage());
+
+      case AppRoutes.notificationsSettings:
+        return _material(s, const NotificationsSettingsPage());
+
+      case AppRoutes.chatSettingsGlobal:
+        return _material(s, const ChatSettingsGlobalPage());
+
+      case AppRoutes.callSettings:
+        return _material(s, const CallSettingsPage());
+
+      case AppRoutes.appearanceLanguage:
+        return _material(s, const AppearanceLanguagePage());
+
       default:
         return _material(
           s,
@@ -130,30 +185,4 @@ class AppRouter {
   // helper: luôn gắn settings để Navigator observers hoạt động đúng
   static MaterialPageRoute _material(RouteSettings s, Widget child) =>
       MaterialPageRoute(settings: s, builder: (_) => child);
-}
-
-class _SplashGate extends StatefulWidget {
-  const _SplashGate();
-
-  @override
-  State<_SplashGate> createState() => _SplashGateState();
-}
-
-class _SplashGateState extends State<_SplashGate> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() async {
-      // TODO: kiểm tra token/refresh → nếu hợp lệ thì vào home
-      // ví dụ sau này:
-      // final ok = await Services.auth.checkSession();
-      // Navigator.of(context).pushReplacementNamed(ok ? AppRoutes.home : AppRoutes.signIn);
-      Navigator.of(context).pushReplacementNamed(AppRoutes.signIn);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
 }

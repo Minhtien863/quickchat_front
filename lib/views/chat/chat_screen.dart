@@ -10,6 +10,7 @@ import '../../services/chat_service.dart';
 import '../../widgets/chat_composer.dart';
 import '../../widgets/reaction_bar.dart';
 import '../../widgets/schedule_send_sheet.dart';
+import '../../widgets/media_picker_sheet.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -47,18 +48,50 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  // reload danh sách tin nhắn
   Future<void> _reload() async {
     setState(() {
       _future = Services.chat.listMessages(widget.conversationId);
     });
   }
 
+  // gửi tin text đơn giản
   Future<void> _send() async {
     final t = _inputC.text.trim();
     if (t.isEmpty) return;
     _inputC.clear();
     await Services.chat.sendText(widget.conversationId, t);
     _reload();
+  }
+
+  // chụp ảnh/quay video và gửi trực tiếp (mock)
+  Future<void> _handlePickCamera() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chụp ảnh / quay video và gửi (mock)'),
+      ),
+    );
+  }
+
+  // mở bottom sheet chọn media: ảnh/video có sẵn + chụp mới (mock)
+  Future<void> _handlePickGallery() async {
+    await showMediaPickerSheet(
+      context,
+      onTakePhoto: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chụp ảnh / quay video từ sheet và gửi (mock)'),
+          ),
+        );
+      },
+      onTapMockImage: (i) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gửi ảnh/video #$i từ thiết bị (mock)'),
+          ),
+        );
+      },
+    );
   }
 
   String _fmtTime(DateTime t) {
@@ -80,7 +113,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // --- PREVIEW TIN NHẮN + THỜI GIAN ---
             Container(
               margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               padding: const EdgeInsets.all(10),
@@ -101,9 +133,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                      alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 280),
                         child: Container(
@@ -127,27 +158,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ),
-
-            // --- KHAY EMOJI PHẢN HỒI ---
             ReactionBar(
               emojis: const ['❤️', '👍', '😂', '😮', '😢', '😡'],
               onPick: (emoji) async {
                 Navigator.pop(context);
                 try {
-                  // nếu chưa có, bạn có thể thêm sau vào ChatService
-                  // await Services.chat.sendEmoji(widget.conversationId, emoji);
                   await Services.chat.addReaction(m.id, emoji);
                 } catch (_) {}
                 if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Đã phản hồi $emoji')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đã phản hồi $emoji')),
+                  );
                 }
               },
             ),
             const SizedBox(height: 8),
-
-            // --- BẢNG TÙY CHỌN ---
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -166,7 +191,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     label: 'Trả lời',
                     onTap: () {
                       Navigator.pop(context);
-                      // TODO: set reply target
                     },
                   ),
                   _ActionItem(
@@ -286,7 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
             context,
             AppRoutes.voiceCall,
             arguments: {
-              'peerId': 'u2', // TODO: bind thật
+              'peerId': 'u2',
               'peerName': widget.title,
               'avatarUrl': widget.avatarUrl,
             },
@@ -337,7 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: msgs.length,
                   itemBuilder: (_, i) {
                     final m = msgs[msgs.length - 1 - i];
-                    final isMe = m.senderId == 'u1'; // TODO
+                    final isMe = m.senderId == 'u1';
                     return Align(
                       alignment: isMe
                           ? Alignment.centerRight
@@ -361,7 +385,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-
           AnimatedPadding(
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut,
@@ -373,15 +396,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 await Services.chat.sendText(widget.conversationId, t);
                 _reload();
               },
-              onPickCamera: () {},
-              onPickGallery: () {},
+              onPickCamera: _handlePickCamera,
+              onPickGallery: _handlePickGallery,
               onToggleEmoji: () {},
               onSendLike: () async {
                 try {
                   await Services.chat.sendEmoji(
                     widget.conversationId,
                     '👍',
-                  ); // nếu có
+                  );
                 } catch (_) {}
                 _reload();
               },
@@ -396,7 +419,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   peerName: widget.title,
                 );
 
-                if (choice == null) return false; // user hủy
+                if (choice == null) return false;
 
                 if (choice.whenOnline) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -406,14 +429,16 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   );
-                  return true; // báo composer clear
+                  return true;
                 }
 
                 if (choice.scheduledAt != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Đã hẹn lúc ${choice.scheduledAt}')),
+                    SnackBar(
+                      content: Text('Đã hẹn lúc ${choice.scheduledAt}'),
+                    ),
                   );
-                  return true; // báo composer clear
+                  return true;
                 }
 
                 return false;
@@ -426,7 +451,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/* ====== PREVIEW CONTENT (text / image / video / file stub) ====== */
 class _MessagePreviewContent extends StatelessWidget {
   final MessageDTO message;
 
@@ -486,7 +510,6 @@ class _MessagePreviewContent extends StatelessWidget {
   }
 }
 
-/* ====== ACTION GRID ====== */
 class _ActionItem {
   final IconData icon;
   final String label;
@@ -556,31 +579,4 @@ class _ActionGrid extends StatelessWidget {
       },
     );
   }
-}
-
-String _pad2(int x) => x.toString().padLeft(2, '0');
-
-String _fmtFull(DateTime t) =>
-    '${_pad2(t.day)}/${_pad2(t.month)}/${t.year} • ${_pad2(t.hour)}:${_pad2(t.minute)}';
-
-Future<DateTime?> _pickDateTime(
-  BuildContext context, {
-  DateTime? initial,
-}) async {
-  final now = DateTime.now();
-  final firstDate = now;
-  final initDate = initial ?? now.add(const Duration(minutes: 5));
-  final d = await showDatePicker(
-    context: context,
-    initialDate: initDate,
-    firstDate: firstDate,
-    lastDate: now.add(const Duration(days: 365)),
-  );
-  if (d == null) return null;
-  final t = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay(hour: initDate.hour, minute: initDate.minute),
-  );
-  if (t == null) return null;
-  return DateTime(d.year, d.month, d.day, t.hour, t.minute);
 }

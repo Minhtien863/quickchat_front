@@ -47,9 +47,21 @@ class UserProfileDTO {
   final String displayName;
   final String handle;
   final String? bio;
+  final String? phone;
+  final String? email;
   final DateTime? birthday;
   final String? avatarUrl;
-  UserProfileDTO({required this.id, required this.displayName, required this.handle, this.bio, this.birthday, this.avatarUrl});
+  UserProfileDTO(
+      {
+        required this.id,
+        required this.displayName,
+        required this.handle, this.bio,
+        this.birthday,
+        this.avatarUrl,
+        this.phone,
+        this.email
+      }
+      );
 }
 
 

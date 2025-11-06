@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../routes.dart';
+import '../../widgets/media_picker_sheet.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -52,7 +53,27 @@ class _SignUpPageState extends State<SignUpPage> {
                 // Avatar: để sau (upload Cloudinary / chọn ảnh)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(radius: 28, child: Icon(Icons.person)),
+                  leading: CircleAvatar(
+                    radius: 40,
+                    child: InkWell(
+                      onTap: () async {
+                        await showMediaPickerSheet(
+                          context,
+                          onTakePhoto: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Chụp avatar đăng ký (mock)')),
+                            );
+                          },
+                          onTapMockImage: (i) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Chọn avatar có sẵn #$i (mock)')),
+                            );
+                          },
+                        );
+                      },
+                      child: const Icon(Icons.person, size: 32),
+                    ),
+                  ),
                   title: const Text('Ảnh đại diện'),
                   subtitle: const Text('Chọn sau (sẽ bật khi có backend/upload)'),
                   onTap: () {/* TODO: mở picker & upload */},

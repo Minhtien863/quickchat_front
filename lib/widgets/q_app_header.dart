@@ -6,9 +6,10 @@ enum AppSection { messages, contacts, notifications, profile }
 class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
   final Widget child;
   final double height;
+
   const QAppHeader._(this.child, this.height, {super.key});
 
-  // ========= HOME (thu gọn: nút Search giả + actions theo tab) =========
+  // Header cho màn Home với ô search và action theo từng tab.
   factory QAppHeader.home({
     required AppSection section,
     VoidCallback? onTapSearch,
@@ -16,18 +17,23 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
     VoidCallback? onNewChat,
     VoidCallback? onSettings,
   }) {
-    // actions theo tab
     List<Widget> actions;
     switch (section) {
       case AppSection.messages:
-        actions = [ _IconPlain(icon: Icons.add, onPressed: onNewChat) ];
+        actions = [
+          _IconPlain(icon: Icons.add, onPressed: onNewChat),
+        ];
         break;
       case AppSection.contacts:
-        actions = [ _IconPlain(icon: Icons.person_add_alt, onPressed: onAddFriend) ];
+        actions = [
+          _IconPlain(icon: Icons.person_add_alt, onPressed: onAddFriend),
+        ];
         break;
       case AppSection.notifications:
       case AppSection.profile:
-        actions = [ _IconPlain(icon: Icons.settings_outlined, onPressed: onSettings) ];
+        actions = [
+          _IconPlain(icon: Icons.settings_outlined, onPressed: onSettings),
+        ];
         break;
     }
 
@@ -39,7 +45,6 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           child: Row(
             children: [
-              // Nút search giả: icon + text
               Expanded(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
@@ -71,7 +76,7 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
     return QAppHeader._(shell, 64);
   }
 
-  // ========= SEARCH (mở rộng với TextField) =========
+  // Header dùng khi mở thanh search toàn màn hình.
   factory QAppHeader.search({
     required VoidCallback onBack,
     required ValueChanged<String> onChanged,
@@ -110,10 +115,10 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
                       border: InputBorder.none,
                       isDense: true,
                       hintText: hint,
-                      hintStyle: const TextStyle(color: Colors.black38),
-                      prefixIcon: const Icon(Icons.search, color: Colors.black45),
+                      hintStyle: TextStyle(color: Colors.black38),
+                      prefixIcon: Icon(Icons.search, color: Colors.black45),
                       prefixIconConstraints:
-                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                      BoxConstraints(minWidth: 36, minHeight: 36),
                     ),
                   ),
                 ),
@@ -128,7 +133,7 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
     return QAppHeader._(shell, kToolbarHeight + 10);
   }
 
-  // ========= CHAT HEADER (giữ icon, nền gradient) =========
+  // Header cho màn hình chat (có avatar, call, video, more).
   factory QAppHeader.chat({
     required String title,
     String? subtitle,
@@ -136,19 +141,19 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
     VoidCallback? onCall,
     VoidCallback? onVideo,
     VoidCallback? onMore,
-    String? avatarUrl,               // <— thêm: để show avatar
-    String? avatarFallback,          // <— ký tự fallback
+    String? avatarUrl,
+    String? avatarFallback,
   }) {
-    const double kRowH = kToolbarHeight;      // 56
-    const double kIconPad = 2;
-    const double kActionSize = 40;            // nút action đồng bộ
-    const double kAvatarRadius = 16;          // 32px
+    const double rowH = kToolbarHeight;
+    const double iconPad = 2;
+    const double actionSize = 40;
+    const double avatarRadius = 16;
 
-    Widget _action(IconData ico, VoidCallback? onTap) => SizedBox(
-      width: kActionSize,
-      height: kActionSize,
+    Widget action(IconData ico, VoidCallback? onTap) => SizedBox(
+      width: actionSize,
+      height: actionSize,
       child: IconButton(
-        padding: const EdgeInsets.all(kIconPad),
+        padding: const EdgeInsets.all(iconPad),
         icon: Icon(ico, color: Colors.white),
         splashRadius: 22,
         onPressed: onTap,
@@ -159,40 +164,41 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
       child: SafeArea(
         bottom: false,
         child: SizedBox(
-          height: kRowH,                       // tránh tràn chiều cao
+          height: rowH,
           child: Row(
             children: [
-              // back
               SizedBox(
-                width: kActionSize,
-                height: kActionSize,
+                width: actionSize,
+                height: actionSize,
                 child: IconButton(
-                  padding: const EdgeInsets.all(kIconPad),
+                  padding: const EdgeInsets.all(iconPad),
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   splashRadius: 22,
                   onPressed: onBack,
                 ),
               ),
-              // avatar
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: CircleAvatar(
-                  radius: kAvatarRadius,
-                  backgroundImage:
-                  (avatarUrl != null && avatarUrl.isNotEmpty)
+                  radius: avatarRadius,
+                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
                       ? NetworkImage(avatarUrl)
                       : null,
                   backgroundColor: const Color(0x22FFFFFF),
                   child: (avatarUrl == null || avatarUrl.isEmpty)
                       ? Text(
-                    (avatarFallback ?? title).characters.first.toUpperCase(),
+                    (avatarFallback ?? title)
+                        .characters
+                        .first
+                        .toUpperCase(),
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   )
                       : null,
                 ),
               ),
-              // title + subtitle
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -216,15 +222,16 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
               ),
-              // actions
-              _action(Icons.phone, onCall),
-              _action(Icons.videocam, onVideo),
-              _action(Icons.more_vert, onMore),
+              action(Icons.phone, onCall),
+              action(Icons.videocam, onVideo),
+              action(Icons.more_vert, onMore),
               const SizedBox(width: 4),
             ],
           ),
@@ -232,13 +239,10 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
 
-    return QAppHeader._(shell, kRowH);
+    return QAppHeader._(shell, rowH);
   }
 
-  // ========= PLAIN/TITLE-ONLY (nền gradient đồng bộ) =========
-  /// Dùng cho các trang không có ô tìm kiếm (Thêm bạn, Lời mời kết bạn, v.v.)
-  /// - Mặc định: nền gradient như Home/Search/Chat (đồng bộ brand)
-  /// - Nếu muốn nền trắng thì dùng [QAppHeader.plainSurface].
+  // Header đơn giản với title, nền gradient.
   factory QAppHeader.plain({
     Key? key,
     required String title,
@@ -261,7 +265,8 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
               Expanded(
                 child: Align(
-                  alignment: centerTitle ? Alignment.center : Alignment.centerLeft,
+                  alignment:
+                  centerTitle ? Alignment.center : Alignment.centerLeft,
                   child: Text(
                     title,
                     maxLines: 1,
@@ -282,7 +287,7 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
     return QAppHeader._(body, kToolbarHeight + 8, key: key);
   }
 
-  // ========= PLAIN SURFACE (nền trắng khi cần) =========
+  // Header đơn giản nền trắng (dùng cho vài màn không cần gradient).
   factory QAppHeader.plainSurface({
     Key? key,
     required String title,
@@ -303,7 +308,8 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             Expanded(
               child: Align(
-                alignment: centerTitle ? Alignment.center : Alignment.centerLeft,
+                alignment:
+                centerTitle ? Alignment.center : Alignment.centerLeft,
                 child: Text(
                   title,
                   maxLines: 1,
@@ -329,12 +335,11 @@ class QAppHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) => child;
 }
 
-// =========== Helpers ===========
-
 class _GradientShell extends StatelessWidget {
   final Widget child;
   final List<Color>? colors;
   final SystemUiOverlayStyle? systemUi;
+
   const _GradientShell({
     required this.child,
     this.colors,
@@ -343,7 +348,6 @@ class _GradientShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // áp dụng màu biểu tượng status bar sáng
     if (systemUi != null) {
       SystemChrome.setSystemUIOverlayStyle(systemUi!);
     }
@@ -353,7 +357,10 @@ class _GradientShell extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: colors ??
-              const [Color(0xFF2DAAE1), Color(0xFF0A84FF)], // brand gradient
+              const [
+                Color(0xFF2DAAE1),
+                Color(0xFF0A84FF),
+              ],
         ),
       ),
       child: child,
@@ -364,7 +371,9 @@ class _GradientShell extends StatelessWidget {
 class _IconPlain extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
+
   const _IconPlain({required this.icon, this.onPressed});
+
   @override
   Widget build(BuildContext context) {
     return IconButton(

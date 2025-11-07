@@ -22,7 +22,7 @@ class _AccountSecurityPageState extends State<AccountSecurityPage> {
   @override
   void initState() {
     super.initState();
-    _future = Services.contacts.myProfile();
+    // _future = Services.contacts.myProfile();
   }
 
   // format phone/email

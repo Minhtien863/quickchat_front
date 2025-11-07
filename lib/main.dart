@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'widgets/app_theme.dart';
 
-void main() {
+import 'services/service_registry.dart';
+
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // khởi tạo AuthServiceHttp (load token + user từ storage)
+  await Services.init();
   runApp(const QuickChatApp());
 }
 

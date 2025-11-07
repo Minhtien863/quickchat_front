@@ -25,6 +25,7 @@ import 'views/settings/chat_settings_global_page.dart';
 import 'views/settings/notifications_settings_page.dart';
 import 'views/settings/privacy_settings_page.dart';
 import 'views/settings/settings_page.dart';
+import 'views/auth/forgot_password_page.dart';
 
 class AppRoutes {
   static const splash             = '/';
@@ -41,6 +42,7 @@ class AppRoutes {
   static const voiceCall          = '/voice-call';
   static const videoCall          = '/video-call';
   static const scheduledMessages  = '/scheduled-messages';
+  static const forgotPassword     = '/forgot-password';
 
   static const chatSettings       = '/chat-settings';
   static const accountSecurity    = '/account-security';
@@ -65,6 +67,9 @@ class AppRouter {
 
       case AppRoutes.signUp:
         return _material(s, const SignUpPage());
+
+      case AppRoutes.forgotPassword:
+        return _material(s, const ForgotPasswordPage());
 
       case AppRoutes.home:
         return _material(s, const HomePage());

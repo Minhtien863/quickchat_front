@@ -35,12 +35,23 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _inputC = TextEditingController();
   late Future<List<MessageDTO>> _future;
+  String? _myId;
 
   @override
   void initState() {
     super.initState();
     _future = Services.chat.listMessages(widget.conversationId);
+    _loadMyId();
   }
+
+  Future<void> _loadMyId() async {
+    final me = await Services.auth.currentUser();
+    if (!mounted) return;
+    setState(() {
+      _myId = me?.id;
+    });
+  }
+
 
   @override
   void dispose() {
@@ -74,25 +85,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // mở bottom sheet chọn media: ảnh/video có sẵn + chụp mới (mock)
-  Future<void> _handlePickGallery() async {
-    await showMediaPickerSheet(
-      context,
-      onTakePhoto: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chụp ảnh / quay video từ sheet và gửi (mock)'),
-          ),
-        );
-      },
-      onTapMockImage: (i) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gửi ảnh/video #$i từ thiết bị (mock)'),
-          ),
-        );
-      },
-    );
-  }
+  // Future<void> _handlePickGallery() async {
+  //   await showMediaPickerSheet(
+  //     context,
+  //     onTakePhoto: () {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Chụp ảnh / quay video từ sheet và gửi (mock)'),
+  //         ),
+  //       );
+  //     },
+  //     onPickFromGallery: () {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Gửi ảnh/video từ thiết bị (mock)'),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   String _fmtTime(DateTime t) {
     String two(int x) => x.toString().padLeft(2, '0');
@@ -108,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) {
         final cs = Theme.of(context).colorScheme;
-        final isMe = m.senderId == 'u1'; // TODO: bind user hiện tại
+        final isMe = _myId != null && m.senderId == _myId;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -397,7 +408,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 _reload();
               },
               onPickCamera: _handlePickCamera,
-              onPickGallery: _handlePickGallery,
+              onPickGallery: _handlePickCamera,
               onToggleEmoji: () {},
               onSendLike: () async {
                 try {

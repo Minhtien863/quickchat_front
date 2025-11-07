@@ -1,4 +1,5 @@
-// lib/views/profile/profile_page.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../routes.dart';
@@ -7,7 +8,8 @@ import '../../services/service_registry.dart';
 import '../../widgets/tokens.dart';
 import 'edit_profile_page.dart';
 import '../../widgets/media_picker_sheet.dart';
-
+import 'package:image_picker/image_picker.dart';
+import '../../services/auth_service_http.dart';
 class ProfilePage extends StatefulWidget {
   final String userId; // 'me' => hồ sơ của chính mình
 
@@ -20,7 +22,9 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late Future<UserProfileDTO> _future;
   bool _mockIsFriend = false;
+  bool _updatingAvatar = false;
 
+  final _picker = ImagePicker();
   bool get _isMe => widget.userId == 'me';
 
   @override
@@ -40,25 +44,54 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _openAvatarPicker() async {
-    await showMediaPickerSheet(
+    // Lấy instance auth hiện tại
+    final auth = Services.auth;
+
+    // Nếu không phải AuthServiceHttp thì báo lỗi sớm
+    if (auth is! AuthServiceHttp) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chức năng đổi avatar chưa sẵn sàng')),
+      );
+      return;
+    }
+
+    final file = await showMediaPickerSheet(
       context,
-      onTakePhoto: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chụp ảnh (mock)')),
+      onTakePhoto: () async {
+        final x = await _picker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 90,
         );
-      },
-      onTapMockImage: (i) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Chọn ảnh thứ $i (mock)')),
-        );
+        if (x == null) return null;
+        return File(x.path);
       },
     );
+
+    if (file == null) return;
+
+    try {
+      setState(() => _updatingAvatar = true);
+
+      // Dùng đúng class có method uploadAvatar
+      await auth.uploadAvatar(file);
+
+      setState(() {
+        _future = _isMe
+            ? Services.contacts.myProfile()
+            : Services.contacts.getProfile(widget.userId);
+        _updatingAvatar = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _updatingAvatar = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tải được ảnh: $e')),
+      );
+    }
   }
 
-  Future<void> _onHeaderMenuSelected(
-      _HeaderMenuAction a,
-      UserProfileDTO p,
-      ) async {
+  Future<void> _onHeaderMenuSelected(_HeaderMenuAction a,
+      UserProfileDTO p,) async {
     switch (a) {
       case _HeaderMenuAction.editInfo:
         final result = await Navigator.push(
@@ -67,10 +100,10 @@ class _ProfilePageState extends State<ProfilePage> {
             builder: (_) => EditProfilePage(profile: p),
           ),
         );
-        if (result is Map && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã lưu thông tin (mock)')),
-          );
+        if (result is UserProfileDTO && mounted) {
+          setState(() {
+            _future = Future.value(result); // cập nhật ngay UI
+          });
         }
         break;
 
@@ -105,7 +138,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildHeader(UserProfileDTO p) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Theme
+        .of(context)
+        .colorScheme;
 
     return Container(
       width: double.infinity,
@@ -165,11 +200,26 @@ class _ProfilePageState extends State<ProfilePage> {
           CircleAvatar(
             radius: 44,
             backgroundColor: Colors.white.withOpacity(.15),
-            child: Text(
+            backgroundImage: p.avatarUrl != null && p.avatarUrl!.isNotEmpty
+                ? NetworkImage(p.avatarUrl!)
+                : null,
+            child: _updatingAvatar
+                ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+                : (p.avatarUrl == null || p.avatarUrl!.isEmpty)
+                ? Text(
               p.displayName.characters.first.toUpperCase(),
               style: const TextStyle(fontSize: 30, color: Colors.white),
-            ),
+            )
+                : null,
           ),
+
           const SizedBox(height: 12),
           Text(
             p.displayName,
@@ -350,7 +400,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text(
                         'Đặt ảnh đại diện',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme
+                              .of(context)
+                              .colorScheme
+                              .primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -382,15 +435,61 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<UserProfileDTO>(
       future: _future,
       builder: (_, snap) {
-        if (!snap.hasData) {
+        // 1) Đang load
+        if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
+
+        // 2) Bị lỗi -> show thông báo + nút thử lại
+        if (snap.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              leading: BackButton(onPressed: () => Navigator.pop(context)),
+              title: const Text('Hồ sơ'),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Không tải được hồ sơ'),
+                  const SizedBox(height: 8),
+                  Text(
+                    snap.error.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _future = _isMe
+                            ? Services.contacts.myProfile()
+                            : Services.contacts.getProfile(widget.userId);
+                      });
+                    },
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // 3) Không có data sau khi done (trường hợp hiếm)
+        if (!snap.hasData) {
+          return const Scaffold(
+            body: Center(child: Text('Không có dữ liệu hồ sơ')),
+          );
+        }
+
+        // 4) OK
         final p = snap.data!;
         return Scaffold(
           backgroundColor: const Color(0xFFF7F8FA),
@@ -405,7 +504,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-
 enum _HeaderMenuAction {
   editInfo,
   setAvatar,

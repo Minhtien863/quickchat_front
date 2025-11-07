@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/contacts_service.dart';
 import '../../widgets/q_app_header.dart';
 import '../../widgets/tokens.dart';
+import '../../services/service_registry.dart';
 
 class EditProfilePage extends StatefulWidget {
   final UserProfileDTO profile;
@@ -31,13 +32,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameC = TextEditingController(text: widget.profile.displayName);
+    _nameC   = TextEditingController(text: widget.profile.displayName);
     _handleC = TextEditingController(text: widget.profile.handle ?? '');
-    _bioC = TextEditingController(text: widget.profile.bio ?? '');
-    _phoneC = TextEditingController(text: widget.profile.phone ?? '');
-    _emailC = TextEditingController(text: widget.profile.email ?? '');
+    _bioC    = TextEditingController(text: widget.profile.bio ?? '');
+    _phoneC  = TextEditingController(text: widget.profile.phone ?? '');
+    _emailC  = TextEditingController(text: widget.profile.email ?? '');
     _birthday = widget.profile.birthday;
   }
+
 
   @override
   void dispose() {
@@ -76,30 +78,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return '$dd/$mm/$yy';
   }
 
-  // Lưu và pop ra Map giá trị mới
+  // Lưu backend
   Future<void> _save() async {
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok || _saving) return;
 
     setState(() => _saving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _saving = false);
+    try {
+      final updated = await Services.contacts.updateMyProfile(
+        displayName: _nameC.text.trim(),
+        bio: _bioC.text.trim().isEmpty ? null : _bioC.text.trim(),
+        phone: _phoneC.text.trim().isEmpty ? null : _phoneC.text.trim(),
+        birthday: _birthday,
+      );
 
-    Navigator.pop(context, {
-      'displayName': _nameC.text.trim(),
-      'handle': _handleC.text.trim().isEmpty ? null : _handleC.text.trim(),
-      'bio': _bioC.text.trim().isEmpty ? null : _bioC.text.trim(),
-      'birthday': _birthday,
-      'phoneNumber':
-      _phoneC.text.trim().isEmpty ? null : _phoneC.text.trim(),
-      'email': _emailC.text.trim().isEmpty ? null : _emailC.text.trim(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã lưu thay đổi (mock)')),
-    );
+      if (!mounted) return;
+      Navigator.pop(context, updated);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lưu thất bại: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +156,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   hintText: 'nhập tên người dùng',
                 ),
                 maxLength: 32,
+                enabled: false,
               ),
             ),
 
@@ -186,9 +191,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 keyboardType: TextInputType.emailAddress,
                 maxLength: 80,
+                enabled: false, // <-- chưa cho đổi email
                 validator: (v) {
                   final t = v?.trim() ?? '';
-                  if (t.isEmpty) return null; // không bắt buộc
+                  if (t.isEmpty) return null;
                   if (!t.contains('@') || !t.contains('.')) {
                     return 'Email không hợp lệ';
                   }
